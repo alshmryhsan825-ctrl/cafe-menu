@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>لوحة التحكم</title>
+<link rel="stylesheet" href="common.css">
+<style>
+  .atabs{display:flex;gap:4px;padding:0 16px;background:#fff;border-bottom:1px solid var(--line);overflow-x:auto}
+  .atabs button{border:0;background:none;padding:14px 14px 12px;font-weight:600;color:var(--muted);border-bottom:3px solid transparent;white-space:nowrap}
+  .atabs button.on{color:var(--ink);border-bottom-color:var(--brand)}
+  .wrap{max-width:860px;margin:0 auto;padding:18px 16px 60px}
+  .bar{display:flex;gap:10px;margin-bottom:16px}
+  .bar .input{flex:1}
+  .grp h3{font-size:15px;color:var(--muted);margin:22px 4px 8px}
+  .row{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:8px 12px;margin-bottom:8px}
+  .row .th{width:52px;height:52px;border-radius:10px;background:var(--soft) center/cover;display:grid;place-items:center;font-size:26px;flex:none}
+  .row .nm{flex:1;min-width:0}
+  .row .nm b{display:block}
+  .row .nm small{color:var(--muted)}
+  .row .pr{font-weight:700;white-space:nowrap}
+  .row.off .th,.row.off .nm{opacity:.5}
+  .catrow input{flex:1}
+  .catrow .cnt{color:var(--muted);font-size:13px;white-space:nowrap}
+  .mini{border:1px solid var(--line);background:#fff;border-radius:8px;width:34px;height:34px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+  @media (max-width:560px){.grid2{grid-template-columns:1fr}}
+  dialog{border:0;border-radius:20px;padding:0;width:min(520px,calc(100% - 24px));max-height:calc(100vh - 24px)}
+  dialog::backdrop{background:rgba(20,12,6,.5)}
+  dialog form{padding:20px}
+  dialog h2{margin:0 0 14px;font-size:20px}
+  .imgbox{display:flex;gap:12px;align-items:center}
+  .imgbox .th{width:84px;height:84px;border-radius:12px;background:var(--soft) center/cover;display:grid;place-items:center;font-size:36px;flex:none}
+  .dlg-actions{display:flex;gap:8px;margin-top:8px}
+  .dlg-actions .sp{flex:1}
+  .qrgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-top:16px}
+  .qr{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center}
+  .qr .code{display:flex;justify-content:center;margin-bottom:8px}
+  .qr b{display:block;font-size:18px}
+  .qr small{color:var(--muted)}
+  .qr a{font-size:12px;color:var(--muted);word-break:break-all}
+  .warn{background:#fff6e0;color:#7a5200;border-radius:12px;padding:10px 14px;font-size:14px;margin:8px 0}
+  @media print{
+    body>*:not(.wrap){display:none !important}
+    .wrap>section:not([data-pane="qr"]),.qr-tools{display:none !important}
+    .qrgrid{grid-template-columns:repeat(3,1fr)}
+    .qr{break-inside:avoid}
+    .qr a{display:none}
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><b id="cafeName">…</b><span class="tag">لوحة التحكم</span></div>
+  <div class="actions">
+    <a class="btn small ghost" href="cashier.html">شاشة الكاشير</a>
+    <a class="btn small ghost" href="index.html?table=1" target="_blank">شوف المنيو</a>
+    <button class="btn small ghost" id="logout">خروج</button>
+  </div>
+</header>
+<nav class="atabs">
+  <button data-tab="items" class="on">الأصناف</button>
+  <button data-tab="cats">الأقسام</button>
+  <button data-tab="settings">الإعدادات</button>
+  <button data-tab="qr">باركود الطاولات</button>
+</nav>
+<main class="wrap">
+  <section data-pane="items">
+    <div class="bar"><input class="input" id="search" placeholder="ابحث عن صنف" type="search"><button class="btn" id="addItem">+ صنف جديد</button></div>
+    <div id="itemsList"></div>
+  </section>
+
+  <section data-pane="cats" hidden>
+    <form id="catForm" class="bar"><input class="input" name="name" placeholder="اسم القسم الجديد، مثلاً: عصيرات" required maxlength="40"><button class="btn">إضافة</button></form>
+    <div id="catsList"></div>
+  </section>
+
+  <section data-pane="settings" hidden>
+    <form id="setForm" class="card">
+      <div class="grid2">
+        <div class="field"><label for="s-name">اسم الكوفي</label><input id="s-name" name="cafe_name" required maxlength="40"></div>
+        <div class="field"><label for="s-color">اللون الأساسي</label><input id="s-color" name="color" type="color" style="height:44px;padding:4px"></div>
+        <div class="field"><label for="s-tables">عدد الطاولات</label><input id="s-tables" name="tables_count" type="number" min="1" max="200" required></div>
+        <div class="field"><label for="s-cur">العملة</label><input id="s-cur" name="currency" maxlength="8" required></div>
+      </div>
+      <label class="switch" style="margin-bottom:16px"><input type="checkbox" name="is_open"><span>استقبال الطلبات مفتوح</span></label><br>
+      <button class="btn">حفظ الإعدادات</button>
+    </form>
+    <div id="demoZone" class="card" style="margin-top:14px" hidden>
+      <b>وضع التجربة</b>
+      <p class="hint">يرجّع المنيو والطلبات التجريبية مثل أول مرة.</p>
+      <button class="btn ghost danger" id="resetDemo">ابدأ التجربة من جديد</button>
+    </div>
+  </section>
+
+  <section data-pane="qr" hidden>
+    <div class="qr-tools">
+      <div class="field"><label for="baseUrl">رابط صفحة المنيو</label><input id="baseUrl" dir="ltr"></div>
+      <div class="warn" id="qrWarn" hidden>هذا رابط ملف على جهازك، فالباركود ما بيفتح من جوال ثاني. بعد ما ننشر الموقع على الإنترنت حط رابطه هنا.</div>
+      <button class="btn" id="printQr">🖨 اطبع الباركودات</button>
+    </div>
+    <div class="qrgrid" id="qrGrid"></div>
+  </section>
+</main>
+
+<dialog id="itemDlg">
+  <form id="itemForm">
+    <h2 id="dlgTitle">صنف جديد</h2>
+    <div class="field"><label for="f-name">اسم الصنف</label><input id="f-name" name="name" required maxlength="60"></div>
+    <div class="grid2">
+      <div class="field"><label for="f-cat">القسم</label><select id="f-cat" name="category_id"></select></div>
+      <div class="field"><label for="f-price">السعر</label><input id="f-price" name="price" type="number" min="0" step="0.5" required></div>
+      <div class="field"><label for="f-cal">السعرات الحرارية</label><input id="f-cal" name="calories" type="number" min="0" step="1" required></div>
+      <div class="field"><label for="f-emoji">إيموجي (لو ما فيه صورة)</label><input id="f-emoji" name="emoji" maxlength="4" placeholder="☕"></div>
+    </div>
+    <div class="field"><label for="f-desc">وصف قصير (اختياري)</label><input id="f-desc" name="description" maxlength="120"></div>
+    <div class="field"><label>الصورة (اختياري)</label>
+      <div class="imgbox"><div class="th" id="f-th"></div>
+        <div><input type="file" id="f-img" accept="image/*"><br><button type="button" class="btn small ghost" id="f-noimg" style="margin-top:6px">شيل الصورة</button></div></div>
+    </div>
+    <label class="switch" style="margin-bottom:14px"><input type="checkbox" name="available" checked><span>متوفر</span></label>
+    <p class="hint" style="margin-top:0">السعرات إلزامية حسب اشتراطات هيئة الغذاء والدواء.</p>
+    <div class="dlg-actions">
+      <button class="btn" id="f-save">حفظ</button>
+      <button type="button" class="btn ghost" id="f-cancel">إلغاء</button>
+      <span class="sp"></span>
+      <button type="button" class="btn ghost danger" id="f-del" hidden>حذف</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="config.js"></script>
+<script src="store.js"></script>
+<script>
+const S = CafeStore, esc = S.esc, $ = s => document.querySelector(s);
+let M = { settings: {}, categories: [], items: [] };
+let tab = 'items';
+const cur = () => M.settings.currency || 'ر.س';
+const catName = id => (M.categories.find(c => c.id === id) || {}).name || 'بدون قسم';
+
+async function load() {
+  M = await S.getMenu();
+  S.applyBrand(M.settings);
+  $('#cafeName').textContent = M.settings.cafe_name || '';
+  renderItems(); renderCats();
+  if (tab === 'settings' && !document.activeElement?.closest('#setForm')) fillSettings();
+  if (tab === 'qr') renderQR();
+}
+
+// ---------- التبويبات
+document.querySelectorAll('.atabs button').forEach(b => b.onclick = () => {
+  tab = b.dataset.tab;
+  document.querySelectorAll('.atabs button').forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('[data-pane]').forEach(p => p.hidden = p.dataset.pane !== tab);
+  if (tab === 'settings') fillSettings();
+  if (tab === 'qr') renderQR();
+});
+
+// ---------- الأصناف
+function thumb(i, cls = 'th') {
+  return i.image_url ? `<div class="${cls}" style="background-image:url('${esc(i.image_url)}')"></div>` : `<div class="${cls}">${esc(i.emoji || '☕')}</div>`;
+}
+function renderItems() {
+  const q = $('#search').value.trim();
+  const list = M.items.filter(i => !q || i.name.includes(q));
+  const ids = [...M.categories.map(c => c.id), null];
+  $('#itemsList').innerHTML = ids.map(cid => {
+    const its = list.filter(i => (cid === null ? !M.categories.some(c => c.id === i.category_id) : i.category_id === cid));
+    if (!its.length) return '';
+    return `<div class="grp"><h3>${esc(cid === null ? 'بدون قسم' : catName(cid))}</h3>${its.map(i => `
+      <div class="row ${i.available ? '' : 'off'}">${thumb(i)}
+        <div class="nm"><b>${esc(i.name)}</b><small>${i.calories ?? '—'} سعرة</small></div>
+        <span class="pr">${S.money(i.price, cur())}</span>
+        <label class="switch" title="متوفر"><input type="checkbox" data-avail="${i.id}" ${i.available ? 'checked' : ''} aria-label="متوفر"></label>
+        <button class="btn small ghost" data-edit="${i.id}">تعديل</button>
+      </div>`).join('')}</div>`;
+  }).join('') || '<p class="hint">ما فيه أصناف.</p>';
+}
+$('#search').oninput = renderItems;
+$('#itemsList').addEventListener('change', async e => {
+  const t = e.target.closest('[data-avail]'); if (!t) return;
+  try { await S.saveItem({ id: +t.dataset.avail, available: t.checked }); S.toast(t.checked ? 'صار متوفر' : 'انحط "نفد" في المنيو'); }
+  catch (x) { S.toast('ما انحفظ: ' + x.message); t.checked = !t.checked; }
+});
+$('#itemsList').addEventListener('click', e => {
+  const b = e.target.closest('[data-edit]'); if (b) openItem(M.items.find(i => i.id === +b.dataset.edit));
+});
+
+let editing = null, pendingImage;   // pendingImage: undefined = ما تغيّرت، null = انشالت، File = جديدة
+const dlg = $('#itemDlg'), form = $('#itemForm');
+function openItem(it) {
+  editing = it || null; pendingImage = undefined;
+  form.reset();
+  $('#dlgTitle').textContent = it ? 'تعديل صنف' : 'صنف جديد';
+  $('#f-cat').innerHTML = M.categories.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('') + '<option value="">بدون قسم</option>';
+  const v = it || { available: true, category_id: M.categories[0]?.id ?? '' };
+  form.name.value = v.name || '';
+  form.category_id.value = v.category_id ?? '';
+  form.price.value = v.price ?? '';
+  form.calories.value = v.calories ?? '';
+  form.emoji.value = v.emoji || '';
+  form.description.value = v.description || '';
+  form.available.checked = v.available !== false;
+  $('#f-th').outerHTML = thumb(v).replace('class="th"', 'class="th" id="f-th"');
+  $('#f-del').hidden = !it; $('#f-del').textContent = 'حذف'; delete $('#f-del').dataset.sure;
+  dlg.showModal();
+}
+$('#addItem').onclick = () => openItem(null);
+$('#f-cancel').onclick = () => dlg.close();
+$('#f-img').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  pendingImage = f;
+  const th = $('#f-th'); th.textContent = ''; th.style.backgroundImage = `url('${URL.createObjectURL(f)}')`;
+};
+$('#f-noimg').onclick = () => {
+  pendingImage = null; $('#f-img').value = '';
+  const th = $('#f-th'); th.style.backgroundImage = ''; th.textContent = form.emoji.value || '☕';
+};
+form.onsubmit = async e => {
+  e.preventDefault();
+  const btn = $('#f-save'); btn.disabled = true; btn.textContent = 'جاري الحفظ…';
+  try {
+    const data = {
+      name: form.name.value.trim(),
+      category_id: form.category_id.value ? +form.category_id.value : null,
+      price: +form.price.value,
+      calories: Math.round(+form.calories.value),
+      emoji: form.emoji.value.trim() || null,
+      description: form.description.value.trim() || null,
+      available: form.available.checked
+    };
+    if (pendingImage) data.image_url = await S.uploadImage(pendingImage);
+    else if (pendingImage === null) data.image_url = null;
+    if (editing) data.id = editing.id;
+    await S.saveItem(data);
+    dlg.close(); S.toast('انحفظ ✓'); await load();
+  } catch (x) { S.toast('ما انحفظ: ' + x.message); }
+  btn.disabled = false; btn.textContent = 'حفظ';
+};
+$('#f-del').onclick = async e => {
+  const b = e.currentTarget;
+  if (!b.dataset.sure) { b.dataset.sure = '1'; b.textContent = 'متأكد؟ اضغط مرة ثانية'; return; }
+  try { await S.deleteItem(editing.id); dlg.close(); S.toast('انحذف'); await load(); }
+  catch (x) { S.toast('ما انحذف: ' + x.message); }
+};
+
+// ---------- الأقسام
+function renderCats() {
+  $('#catsList').innerHTML = M.categories.map((c, i) => `
+    <div class="row catrow">
+      <input class="input" value="${esc(c.name)}" data-rename="${c.id}" maxlength="40" aria-label="اسم القسم">
+      <span class="cnt">${M.items.filter(x => x.category_id === c.id).length} صنف</span>
+      <button class="mini" data-move="${c.id}" data-dir="-1" ${i ? '' : 'disabled'} aria-label="لفوق">↑</button>
+      <button class="mini" data-move="${c.id}" data-dir="1" ${i < M.categories.length - 1 ? '' : 'disabled'} aria-label="لتحت">↓</button>
+      <button class="btn small ghost danger" data-delcat="${c.id}">حذف</button>
+    </div>`).join('') || '<p class="hint">ما فيه أقسام.</p>';
+}
+$('#catForm').onsubmit = async e => {
+  e.preventDefault();
+  const name = e.target.name.value.trim(); if (!name) return;
+  try {
+    const maxSort = Math.max(0, ...M.categories.map(c => c.sort || 0));
+    await S.saveCategory({ name, sort: maxSort + 1 }); e.target.reset(); S.toast('انضاف القسم'); await load();
+  } catch (x) { S.toast('ما انحفظ: ' + x.message); }
+};
+$('#catsList').addEventListener('change', async e => {
+  const t = e.target.closest('[data-rename]'); if (!t || !t.value.trim()) return;
+  try { await S.saveCategory({ id: +t.dataset.rename, name: t.value.trim() }); S.toast('انحفظ ✓'); await load(); }
+  catch (x) { S.toast('ما انحفظ: ' + x.message); }
+});
+$('#catsList').addEventListener('click', async e => {
+  const mv = e.target.closest('[data-move]'), del = e.target.closest('[data-delcat]');
+  try {
+    if (mv) {
+      const cats = [...M.categories], i = cats.findIndex(c => c.id === +mv.dataset.move), j = i + +mv.dataset.dir;
+      [cats[i], cats[j]] = [cats[j], cats[i]];
+      for (let k = 0; k < cats.length; k++) if (cats[k].sort !== k + 1) await S.saveCategory({ id: cats[k].id, sort: k + 1 });
+      await load();
+    }
+    if (del) {
+      if (!del.dataset.sure) { del.dataset.sure = '1'; del.textContent = 'متأكد؟'; return; }
+      await S.deleteCategory(+del.dataset.delcat); S.toast('انحذف القسم، وأصنافه صارت "بدون قسم"'); await load();
+    }
+  } catch (x) { S.toast('ما انحفظ: ' + x.message); }
+});
+
+// ---------- الإعدادات
+function fillSettings() {
+  const f = $('#setForm'), s = M.settings;
+  f.cafe_name.value = s.cafe_name || '';
+  f.color.value = /^#[0-9a-f]{6}$/i.test(s.color || '') ? s.color : '#b5652b';
+  f.tables_count.value = s.tables_count || 10;
+  f.currency.value = s.currency || 'ر.س';
+  f.is_open.checked = s.is_open !== false;
+}
+$('#setForm').onsubmit = async e => {
+  e.preventDefault();
+  const f = e.target;
+  try {
+    await S.saveSettings({ cafe_name: f.cafe_name.value.trim(), color: f.color.value, tables_count: +f.tables_count.value, currency: f.currency.value.trim(), is_open: f.is_open.checked });
+    S.toast('انحفظت الإعدادات ✓'); document.activeElement?.blur(); await load();
+  } catch (x) { S.toast('ما انحفظ: ' + x.message); }
+};
+if (!S.LIVE) {
+  $('#demoZone').hidden = false;
+  $('#resetDemo').onclick = async e => {
+    const b = e.currentTarget;
+    if (!b.dataset.sure) { b.dataset.sure = '1'; b.textContent = 'متأكد؟ اضغط مرة ثانية'; return; }
+    await S.resetDemo(); delete b.dataset.sure; b.textContent = 'ابدأ التجربة من جديد'; S.toast('رجعت بيانات التجربة'); await load(); fillSettings();
+  };
+}
+
+// ---------- الباركود
+const defaultBase = () => location.href.split(/[?#]/)[0].replace(/[^/]*$/, 'index.html');
+let baseUrl = (() => { try { return localStorage.getItem('cafe-menu-url') || defaultBase(); } catch (e) { return defaultBase(); } })();
+$('#baseUrl').value = baseUrl;
+$('#baseUrl').onchange = e => { baseUrl = e.target.value.trim() || defaultBase(); try { localStorage.setItem('cafe-menu-url', baseUrl); } catch (x) { } renderQR(); };
+function renderQR() {
+  $('#qrWarn').hidden = !baseUrl.startsWith('file:');
+  const n = Math.min(200, M.settings.tables_count || 10);
+  const list = [{ t: 0, label: 'استلام من الكاشير' }, ...Array.from({ length: n }, (_, k) => ({ t: k + 1, label: 'طاولة ' + (k + 1) }))];
+  const grid = $('#qrGrid'); grid.innerHTML = '';
+  for (const x of list) {
+    const url = baseUrl + (x.t ? '?table=' + x.t : '');
+    const card = document.createElement('div'); card.className = 'qr';
+    card.innerHTML = `<div class="code"></div><b>${esc(x.label)}</b><small>امسح واطلب من جوالك · ${esc(M.settings.cafe_name || '')}</small><br><a href="${esc(url)}" target="_blank">${esc(url)}</a>`;
+    grid.appendChild(card);
+    if (window.QRCode) new QRCode(card.querySelector('.code'), { text: url, width: 140, height: 140, correctLevel: QRCode.CorrectLevel.M });
+    else card.querySelector('.code').textContent = 'تحتاج إنترنت عشان يطلع الباركود';
+  }
+}
+$('#printQr').onclick = () => window.print();
+$('#logout').onclick = async () => { await S.signOut(); location.reload(); };
+
+S.demoBanner();
+(async () => {
+  await S.requireStaff('لوحة التحكم');
+  await load();
+  S.on('menu', load);
+})();
+</script>
+</body>
+</html>

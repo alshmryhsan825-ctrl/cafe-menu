@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>شاشة الكاشير</title>
+<link rel="stylesheet" href="common.css">
+<style>
+  .live{font-size:12px;display:inline-flex;align-items:center;gap:6px;opacity:.85}
+  .live::before{content:'';width:8px;height:8px;border-radius:50%;background:#4ade80}
+  .live.off::before{background:#f87171}
+  .board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;padding:16px;align-items:start}
+  @media (max-width:860px){.board{grid-template-columns:1fr}}
+  .col{background:#efe6da;border-radius:18px;padding:12px;min-height:200px}
+  .col h2{margin:2px 4px 12px;font-size:17px;display:flex;align-items:center;gap:8px}
+  .col h2 .n{background:#fff;border-radius:999px;font-size:13px;padding:1px 10px;min-width:28px;text-align:center}
+  .col[data-col="new"] h2 .n{background:var(--brand);color:#fff}
+  .list{display:flex;flex-direction:column;gap:10px}
+  .none{text-align:center;color:var(--muted);font-size:14px;padding:28px 0}
+  .ocard{background:#fff;border-radius:14px;padding:12px 14px;border:1px solid var(--line);border-right:5px solid var(--line)}
+  .col[data-col="new"] .ocard{border-right-color:var(--brand)}
+  .col[data-col="accepted"] .ocard{border-right-color:var(--warn)}
+  .col[data-col="ready"] .ocard{border-right-color:var(--ok)}
+  .ocard.pulse{animation:arrive 1s ease 3}
+  @keyframes arrive{50%{box-shadow:0 0 0 6px rgba(181,101,43,.25)}}
+  .ohead{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+  .ono{font-weight:700;font-size:20px}
+  .otable{background:var(--ink);color:#fff;border-radius:8px;padding:1px 9px;font-size:14px;font-weight:600}
+  .oago{margin-inline-start:auto;font-size:13px;color:var(--muted)}
+  .ocard.late .oago{color:var(--bad);font-weight:600}
+  .olines{list-style:none;margin:0;padding:0;font-size:15px}
+  .olines li{padding:2px 0}
+  .olines b{display:inline-block;min-width:28px}
+  .onote{background:#fff6e0;border-radius:8px;padding:6px 10px;font-size:14px;margin-top:8px}
+  .ofoot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);flex-wrap:wrap}
+  .obtns{display:flex;gap:6px}
+  .icon{border:1px solid var(--line);background:#fff;border-radius:10px;width:36px;height:36px}
+  .foot{text-align:center;color:var(--muted);font-size:14px;padding:4px 16px 24px}
+  .soundoff{background:#fff6e0;color:#7a5200;text-align:center;padding:8px;font-size:14px;cursor:pointer}
+  #print{display:none}
+  @media print{
+    body>*:not(#print){display:none !important}
+    #print{display:block;width:72mm;font-size:12px;color:#000}
+    #print h3{margin:0;text-align:center;font-size:16px}
+    #print .r{display:flex;justify-content:space-between}
+    #print hr{border:0;border-top:1px dashed #000}
+    @page{margin:4mm}
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><b id="cafeName">الكاشير</b><span class="live" id="live">مباشر</span></div>
+  <div class="actions">
+    <label class="switch"><input type="checkbox" id="openToggle"><span>استقبال الطلبات</span></label>
+    <a class="btn small ghost" href="admin.html">لوحة التحكم</a>
+    <button class="btn small ghost" id="logout">خروج</button>
+  </div>
+</header>
+<div class="soundoff" id="soundOff" hidden>🔕 اضغط هنا عشان تشتغل نغمة الطلبات الجديدة</div>
+<main class="board">
+  <section class="col" data-col="new"><h2>طلبات جديدة <span class="n">0</span></h2><div class="list"></div></section>
+  <section class="col" data-col="accepted"><h2>يتحضّر <span class="n">0</span></h2><div class="list"></div></section>
+  <section class="col" data-col="ready"><h2>جاهزة للتسليم <span class="n">0</span></h2><div class="list"></div></section>
+</main>
+<footer class="foot" id="foot"></footer>
+<div id="print"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="store.js"></script>
+<script>
+const S = CafeStore, esc = S.esc, $ = s => document.querySelector(s);
+let orders = [], settings = {}, seen = null;
+const justArrived = new Set();
+const cur = () => settings.currency || 'ر.س';
+const baseTitle = 'شاشة الكاشير';
+
+// ---------- الصوت
+let actx = null;
+function enableSound() {
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    actx.resume();
+  } catch (e) { }
+  $('#soundOff').hidden = !!actx && actx.state === 'running';
+}
+function beep() {
+  if (!actx || actx.state !== 'running') { $('#soundOff').hidden = false; return; }
+  const t = actx.currentTime;
+  [[0, 784], [0.18, 1047], [0.36, 1319]].forEach(([d, f]) => {
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = 'sine'; o.frequency.value = f;
+    g.gain.setValueAtTime(0.0001, t + d);
+    g.gain.exponentialRampToValueAtTime(0.5, t + d + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.17);
+    o.connect(g).connect(actx.destination); o.start(t + d); o.stop(t + d + 0.2);
+  });
+}
+$('#soundOff').onclick = enableSound;
+document.addEventListener('click', () => { if (!actx || actx.state !== 'running') enableSound(); });
+
+function flashTitle(n) {
+  let i = 0; clearInterval(flashTitle.h);
+  flashTitle.h = setInterval(() => {
+    document.title = (i++ % 2) ? baseTitle : `(${n}) طلب جديد!`;
+    if (i > 12 || document.hasFocus() && i > 4) { clearInterval(flashTitle.h); document.title = baseTitle; }
+  }, 700);
+}
+
+// ---------- البيانات
+async function loadSettings() {
+  settings = (await S.getMenu()).settings || {};
+  S.applyBrand(settings);
+  $('#cafeName').textContent = settings.cafe_name || 'الكاشير';
+  $('#openToggle').checked = settings.is_open !== false;
+}
+async function refresh() {
+  try { orders = await S.listOrders(); $('#live').classList.remove('off'); $('#live').textContent = 'مباشر'; }
+  catch (e) { $('#live').classList.add('off'); $('#live').textContent = 'غير متصل'; return; }
+  const newOnes = orders.filter(o => o.status === 'new' && seen && !seen.has(o.id));
+  if (newOnes.length) {
+    newOnes.forEach(o => justArrived.add(o.id));
+    beep(); flashTitle(newOnes.length);
+    setTimeout(() => { newOnes.forEach(o => justArrived.delete(o.id)); }, 4000);
+  }
+  seen = new Set([...(seen || []), ...orders.map(o => o.id)]);
+  render();
+}
+
+function ago(o) {
+  const m = Math.floor((Date.now() - new Date(o.created_at).getTime()) / 60000);
+  return m < 1 ? 'الحين' : m < 60 ? `قبل ${m} د` : `قبل ${Math.floor(m / 60)} س`;
+}
+function card(o) {
+  const mins = (Date.now() - new Date(o.created_at).getTime()) / 60000;
+  const items = Array.isArray(o.items) ? o.items : [];
+  const btns = {
+    new: `<button class="btn small" data-act="accepted" data-id="${o.id}">قبول</button>
+          <button class="btn small ghost danger" data-act="rejected" data-id="${o.id}">رفض</button>`,
+    accepted: `<button class="btn small ok" data-act="ready" data-id="${o.id}">جاهز ✓</button>`,
+    ready: `<button class="btn small dark" data-act="done" data-id="${o.id}">تم التسليم</button>`
+  }[o.status] || '';
+  return `<article class="ocard ${justArrived.has(o.id) ? 'pulse' : ''} ${mins >= 10 && o.status !== 'ready' ? 'late' : ''}">
+    <div class="ohead"><span class="ono">#${o.order_no}</span><span class="otable">${o.table_no ? 'طاولة ' + o.table_no : 'استلام'}</span><span class="oago">${ago(o)}</span></div>
+    <ul class="olines">${items.map(l => `<li><b>${l.qty}×</b> ${esc(l.name)}</li>`).join('')}</ul>
+    ${o.note ? `<div class="onote">📝 ${esc(o.note)}</div>` : ''}
+    <div class="ofoot"><b>${S.money(o.total, cur())}</b>
+      <div class="obtns"><button class="icon" data-print="${o.id}" title="طباعة" aria-label="طباعة الطلب">🖨</button>${btns}</div></div>
+  </article>`;
+}
+function render() {
+  for (const col of ['new', 'accepted', 'ready']) {
+    const list = orders.filter(o => o.status === col).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    const el = document.querySelector(`[data-col="${col}"]`);
+    el.querySelector('.n').textContent = list.length;
+    el.querySelector('.list').innerHTML = list.length ? list.map(card).join('') : '<div class="none">ما فيه شي</div>';
+  }
+  const done = orders.filter(o => o.status === 'done');
+  const sales = done.reduce((a, o) => a + Number(o.total), 0);
+  $('#foot').textContent = `آخر ٢٤ ساعة: تم تسليم ${done.length} طلب · المبيعات ${S.money(sales, cur())}`;
+}
+
+document.addEventListener('click', async e => {
+  const act = e.target.closest('[data-act]');
+  if (act) {
+    if (act.dataset.act === 'rejected' && !act.dataset.sure) {
+      act.dataset.sure = '1'; act.textContent = 'متأكد؟';
+      setTimeout(() => { if (act.isConnected) { delete act.dataset.sure; act.textContent = 'رفض'; } }, 3000);
+      return;
+    }
+    act.disabled = true;
+    try { await S.updateOrderStatus(act.dataset.id, act.dataset.act); await refresh(); }
+    catch (x) { S.toast('ما انحفظ: ' + x.message); act.disabled = false; }
+  }
+  const pr = e.target.closest('[data-print]');
+  if (pr) printOrder(orders.find(o => o.id === pr.dataset.print));
+});
+
+function printOrder(o) {
+  if (!o) return;
+  const items = Array.isArray(o.items) ? o.items : [];
+  $('#print').innerHTML = `<h3>${esc(settings.cafe_name || '')}</h3>
+    <div class="r"><b>طلب #${o.order_no}</b><span>${o.table_no ? 'طاولة ' + o.table_no : 'استلام'}</span></div>
+    <div>${new Date(o.created_at).toLocaleString('ar-SA-u-nu-latn')}</div><hr>
+    ${items.map(l => `<div class="r"><span>${l.qty} × ${esc(l.name)}</span><span>${S.money(l.price * l.qty, cur())}</span></div>`).join('')}
+    ${o.note ? `<hr><div>ملاحظة: ${esc(o.note)}</div>` : ''}<hr>
+    <div class="r"><b>المجموع</b><b>${S.money(o.total, cur())}</b></div>`;
+  window.print();
+}
+
+$('#openToggle').onchange = async e => {
+  try { await S.saveSettings({ is_open: e.target.checked }); S.toast(e.target.checked ? 'صرت تستقبل طلبات' : 'وقّفت استقبال الطلبات'); }
+  catch (x) { S.toast('ما انحفظ: ' + x.message); e.target.checked = !e.target.checked; }
+};
+$('#logout').onclick = async () => { await S.signOut(); location.reload(); };
+
+S.demoBanner();
+(async () => {
+  await S.requireStaff('شاشة الكاشير');
+  enableSound();
+  await loadSettings();
+  await refresh();
+  S.on('orders', refresh);
+  S.on('menu', loadSettings);
+  setInterval(refresh, 15000);   // احتياط لو انقطع الاتصال المباشر
+  setInterval(render, 30000);    // تحديث "قبل كم دقيقة"
+})();
+</script>
+</body>
+</html>
