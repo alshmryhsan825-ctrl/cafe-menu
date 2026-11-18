@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>مختبر ساعة نوفا</title>
+<link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;700&family=IBM+Plex+Sans+Arabic:wght@400;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{--c:64,200,255;--h:#40c8ff;--hi:#c8f0ff;--tx:#e2f5ff;--mu:#7fa3b8}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:'IBM Plex Sans Arabic',sans-serif;color:var(--tx);background:radial-gradient(ellipse at 50% 20%,#08223a,#01060d 70%)}
+.wrap{max-width:560px;margin:0 auto;padding:18px 16px 40px}
+h1{margin:0;font-family:'Reem Kufi',sans-serif;font-size:30px;background:linear-gradient(180deg,#fff,var(--hi) 45%,var(--h));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 10px rgba(var(--c),.7))}
+.sub{color:var(--mu);font-size:13px;margin:4px 0 16px}
+.card{border:1px solid rgba(var(--c),.25);background:linear-gradient(160deg,rgba(var(--c),.10),rgba(0,0,0,.35));padding:14px;margin-bottom:12px;clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px)}
+.card h2{margin:0 0 10px;font-family:'Reem Kufi',sans-serif;font-size:17px;color:var(--hi)}
+button{font-family:'Reem Kufi',sans-serif;font-size:16px;cursor:pointer;border:1px solid rgba(var(--c),.45);background:rgba(var(--c),.08);color:var(--tx);padding:12px 14px;width:100%}
+button.main{border:none;background:linear-gradient(180deg,var(--hi),var(--h));color:#02111c;font-weight:700;box-shadow:0 0 22px rgba(var(--c),.5);font-size:18px;padding:15px}
+button:disabled{opacity:.4;cursor:default}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed rgba(var(--c),.15);font-size:14px}
+.stat b{font-family:'Share Tech Mono',monospace;direction:ltr;color:#fff}
+#status{display:flex;align-items:center;gap:8px;font-size:14px}
+#dot{width:10px;height:10px;border-radius:50%;background:#ff4d5e;box-shadow:0 0 8px #ff4d5e}
+#dot.on{background:#3dffa8;box-shadow:0 0 8px #3dffa8}
+#log{height:260px;overflow:auto;font-family:'Share Tech Mono',monospace;font-size:12px;direction:ltr;text-align:left;background:rgba(0,0,0,.45);padding:8px;white-space:pre-wrap;border:1px solid rgba(var(--c),.2)}
+.ok{color:#5effb5}.er{color:#ff8f7d}.nt{color:#ffcf73}
+input{width:100%;font-family:'Share Tech Mono',monospace;font-size:15px;direction:ltr;background:rgba(0,0,0,.4);border:1px solid rgba(var(--c),.35);color:#fff;padding:10px;margin-bottom:8px}
+.note{font-size:12px;color:var(--mu);line-height:1.7}
+.warn{border-color:rgba(255,120,90,.6);background:rgba(255,80,50,.08)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>مختبر ساعة نوفا</h1>
+<div class="sub">يتصل بساعتك Z30 بالبلوتوث ويجرب أوامرها تلقائياً، وبعدها يطلع لك تقرير ترسله لي.</div>
+
+<div id="nobt" class="card warn" hidden><h2>المتصفح ما يدعم البلوتوث هنا</h2><div class="note">افتح الصفحة في <b>Google Chrome</b> على الجوال (أندرويد)، وتأكد إن البلوتوث والموقع شغالين. ولو فاتحها داخل تطبيق Claude، اضغط «فتح في المتصفح».</div></div>
+
+<div class="card">
+<div id="status"><span id="dot"></span><span id="stxt">غير متصل</span></div>
+<p class="note" style="margin:8px 0 12px">قبل ما تبدأ: سكّر تطبيق nRF Connect، وخل الساعة جنب الجوال وشاشتها شغالة.</p>
+<button class="main" id="go">١ · اتصل وجرّب كل شي تلقائياً</button>
+</div>
+
+<div class="card">
+<h2>النتائج</h2>
+<div class="stat"><span>الشركة المصنعة</span><b id="r-man">—</b></div>
+<div class="stat"><span>الموديل</span><b id="r-model">—</b></div>
+<div class="stat"><span>إصدار النظام</span><b id="r-fw">—</b></div>
+<div class="stat"><span>البطارية</span><b id="r-bat">—</b></div>
+<div class="stat"><span>ضبط الوقت</span><b id="r-time">—</b></div>
+<div class="stat"><span>الاهتزاز (دوّر الساعة)</span><b id="r-find">—</b></div>
+<div class="stat"><span>النبض المباشر</span><b id="r-hr">—</b></div>
+<div class="stat"><span>النبض (الخدمة العامة)</span><b id="r-hr2">—</b></div>
+</div>
+
+<div class="card">
+<h2>أوامر يدوية</h2>
+<div class="grid" style="margin-bottom:8px">
+<button data-cmd="03">البطارية</button>
+<button data-cmd="50 55 AA">اهتزاز</button>
+<button data-cmd="69 01 01">ابدأ النبض</button>
+<button data-cmd="6A 01 00">وقّف النبض</button>
+</div>
+<input id="raw" placeholder="مثال: 03  (أرقام hex بمسافات)">
+<button id="send">أرسل الأمر</button>
+<p class="note">المجموع يُحسب ويُضاف تلقائياً. أي أمر غلط ترد عليه الساعة بـ«ما فهمت» بس، ولا يضرها.</p>
+</div>
+
+<div class="card">
+<h2>السجل</h2>
+<div id="log"></div>
+<div class="grid" style="margin-top:8px"><button id="copy">٢ · انسخ التقرير</button><button id="clear">امسح السجل</button></div>
+<p class="note">بعد ما يخلص الاختبار، اضغط «انسخ التقرير» والصقه لي في المحادثة.</p>
+</div>
+</div>
+
+<script>
+const UART='6e40fff0-b5a3-f393-e0a9-e50e24dcca9e', RX='6e400002-b5a3-f393-e0a9-e50e24dcca9e', TX='6e400003-b5a3-f393-e0a9-e50e24dcca9e';
+const BIG='de5bf728-d711-4e47-af26-65e3012a5dc7';
+const DIS=0x180a, HRS=0x180d;
+const BLOCK=[0x08,0xff,0x0a,0x16,0x21,0x2c,0x36,0x38]; // never sent: power-off, factory reset, settings writers
+let dev=null, rxc=null, waiters=[];
+const $=id=>document.getElementById(id);
+const logEl=$('log');
+function log(msg,cls){const t=new Date().toTimeString().slice(0,8);const d=document.createElement('div');if(cls)d.className=cls;d.textContent=t+'  '+msg;logEl.appendChild(d);logEl.scrollTop=1e9;}
+const hex=a=>Array.from(a).map(b=>b.toString(16).padStart(2,'0').toUpperCase()).join(' ');
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function setStatus(on,txt){$('dot').className=on?'on':'';$('stxt').textContent=txt;}
+function pkt(bytes){const p=new Uint8Array(16);bytes.slice(0,15).forEach((b,i)=>p[i]=b&255);let s=0;for(let i=0;i<15;i++)s+=p[i];p[15]=s&255;return p;}
+const bcd=n=>((Math.floor(n/10)<<4)|(n%10));
+
+if(!navigator.bluetooth){$('nobt').hidden=false;$('go').disabled=true;}
+
+function onNotify(e){const v=new Uint8Array(e.target.value.buffer);const cmd=v[0]&0x7f, err=!!(v[0]&0x80);
+  log('← '+hex(v)+(err?'   (الساعة: ما فهمت الأمر '+cmd.toString(16).toUpperCase()+')':''),err?'er':'ok');
+  waiters=waiters.filter(w=>{if(w.cmd===cmd){w.res({v,err});return false}return true});
+  if(!err&&cmd===0x03){$('r-bat').textContent=v[1]+'%'+(v[2]?' (يشحن)':'');}
+  if(!err&&cmd===0x69&&v[3]){$('r-hr').textContent=v[3]+' نبضة';}
+}
+async function send(bytes,wait=2500){
+  if(!rxc){log('غير متصل','er');return null}
+  if(BLOCK.includes(bytes[0])){log('أمر ممنوع للسلامة: '+bytes[0].toString(16),'er');return null}
+  const p=pkt(bytes);log('→ '+hex(p),'nt');
+  const pr=new Promise(res=>{const w={cmd:bytes[0]&0x7f,res};waiters.push(w);setTimeout(()=>{waiters=waiters.filter(x=>x!==w);res(null)},wait)});
+  try{ if(rxc.writeValueWithResponse) await rxc.writeValueWithResponse(p); else await rxc.writeValue(p);}catch(e){log('فشل الإرسال: '+e.message,'er');return null}
+  const r=await pr; if(r===null) log('   (ما وصل رد)','er'); return r;
+}
+async function readDIS(server){
+  try{const s=await server.getPrimaryService(DIS);const td=new TextDecoder();
+    const map={'r-man':0x2a29,'r-model':0x2a24,'r-fw':0x2a26};
+    for(const [id,u] of Object.entries(map)){try{const c=await s.getCharacteristic(u);const v=await c.readValue();const t=td.decode(v.buffer).replace(/\0/g,'');$(id).textContent=t||'—';log('معلومات '+u.toString(16)+': '+t+'  ['+hex(new Uint8Array(v.buffer))+']');}catch(e){log('معلومات '+u.toString(16)+': غير موجود')}}
+    for(const u of [0x2a25,0x2a27,0x2a28,0x2a23,0x2a50]){try{const c=await s.getCharacteristic(u);const v=await c.readValue();log('معلومات '+u.toString(16)+': '+td.decode(v.buffer)+'  ['+hex(new Uint8Array(v.buffer))+']');}catch(e){}}
+  }catch(e){log('خدمة المعلومات: '+e.message,'er')}
+}
+async function listAll(server){
+  try{const svcs=await server.getPrimaryServices();
+    for(const s of svcs){let line='خدمة '+s.uuid+':';try{const cs=await s.getCharacteristics();line+=' '+cs.map(c=>c.uuid.slice(4,8)+'['+Object.entries(c.properties).filter(([k,v])=>v).map(([k])=>k[0]).join('')+']').join(' ');}catch(e){line+=' (محجوبة)'}log(line);}
+  }catch(e){log('قائمة الخدمات: '+e.message,'er')}
+}
+async function stdHR(server,ms){
+  try{const s=await server.getPrimaryService(HRS);const c=await s.getCharacteristic(0x2a37);
+    c.addEventListener('characteristicvaluechanged',e=>{const v=new Uint8Array(e.target.value.buffer);const hr=(v[0]&1)?(v[1]|(v[2]<<8)):v[1];$('r-hr2').textContent=hr+' نبضة';log('نبض عام ← '+hex(v)+'  = '+hr,'ok');});
+    await c.startNotifications();await sleep(ms);try{await c.stopNotifications()}catch(e){}
+  }catch(e){log('خدمة النبض العامة: '+e.message,'er');$('r-hr2').textContent='غير متاح'}
+}
+async function connect(){
+  if(!dev){
+    dev=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:[UART,BIG,DIS,HRS,0x18a0,0x18cc,0x1800,0x1801]});
+    dev.addEventListener('gattserverdisconnected',()=>{rxc=null;setStatus(false,'انقطع الاتصال');log('انقطع الاتصال','er');});
+  }
+  setStatus(false,'يتصل...');
+  const server=await dev.gatt.connect();
+  const svc=await server.getPrimaryService(UART);
+  rxc=await svc.getCharacteristic(RX);
+  const txc=await svc.getCharacteristic(TX);
+  txc.addEventListener('characteristicvaluechanged',onNotify);
+  await txc.startNotifications();
+  setStatus(true,'متصل بـ '+(dev.name||'الساعة'));log('متصل: '+(dev.name||'')+' '+(dev.id||''),'ok');
+  return server;
+}
+async function ensure(){ if(rxc) return dev.gatt; return await connect(); }
+async function runAll(){
+  $('go').disabled=true;
+  try{
+    let server=await connect();
+    // handshake: set the real current time first (watches often drop unknown clients)
+    const n=new Date();
+    const r1=await send([0x01,bcd(n.getFullYear()%100),bcd(n.getMonth()+1),bcd(n.getDate()),bcd(n.getHours()),bcd(n.getMinutes()),bcd(n.getSeconds()),0x01]);
+    $('r-time').textContent=r1?(r1.err?'ما فهمه':'تم'):'ما رد';
+    server=await ensure();
+    const r2=await send([0x03]); if(!r2) $('r-bat').textContent=r2===null?'ما رد':'—'; else if(r2.err) $('r-bat').textContent='ما فهمه';
+    server=await ensure();
+    const r3=await send([0x50,0x55,0xAA]); $('r-find').textContent=r3?(r3.err?'ما فهمه':'رد ✓ (اهتزت؟)'):'ما رد';
+    server=await ensure();
+    await readDIS(server);
+    server=await ensure();
+    await listAll(server);
+    server=await ensure();
+    log('قياس النبض... خل الساعة على يدك ١٥ ثانية','nt');
+    const r4=await send([0x69,0x01,0x01],4000); if(r4&&r4.err) $('r-hr').textContent='ما فهمه';
+    await stdHR(server,15000);
+    await send([0x6A,0x01,0x00]);
+    server=await ensure();
+    log('فحص أوامر استعلام إضافية...','nt');
+    for(const c of [0x15,0x2f,0x43,0x07]){ server=await ensure(); await send([c],1500); }
+    log('✓ خلص الاختبار. اضغط «انسخ التقرير» وأرسله لنوفا.','ok');
+  }catch(e){log('خطأ: '+e.message,'er');setStatus(false,'فشل الاتصال');}
+  $('go').disabled=false;
+}
+$('go').onclick=runAll;
+document.querySelectorAll('[data-cmd]').forEach(b=>b.onclick=async()=>{try{await ensure();await send(b.dataset.cmd.split(' ').map(x=>parseInt(x,16)))}catch(e){log('خطأ: '+e.message,'er')}});
+$('send').onclick=async()=>{const s=$('raw').value.trim();if(!s)return;const bytes=s.split(/[\s,-]+/).filter(Boolean).map(x=>parseInt(x,16));if(bytes.some(isNaN)){log('اكتب أرقام hex بس','er');return}try{await ensure();await send(bytes)}catch(e){log('خطأ: '+e.message,'er')}};
+$('copy').onclick=async()=>{const rows=[...document.querySelectorAll('.stat')].map(s=>s.children[0].textContent+': '+s.children[1].textContent).join('\n');const txt='تقرير ساعة Z30\n'+rows+'\n---\n'+[...logEl.children].map(d=>d.textContent).join('\n');try{await navigator.clipboard.writeText(txt);$('copy').textContent='تم النسخ ✓'}catch(e){const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();$('copy').textContent='تم النسخ ✓'}setTimeout(()=>$('copy').textContent='٢ · انسخ التقرير',2500)};
+$('clear').onclick=()=>{logEl.innerHTML=''};
+</script>
+</body>
+</html>
