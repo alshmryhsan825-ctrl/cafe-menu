@@ -69,6 +69,16 @@ input{width:100%;font-family:'Share Tech Mono',monospace;font-size:15px;directio
 </div>
 
 <div class="card">
+<h2>اختبار الرسائل والنبض</h2>
+<p class="note" style="margin:0 0 8px">اضغط كل رقم لحاله وطالع شاشة الساعة. إذا طلعت عليها كلمة <b>NOVA</b> أو اهتزت، قل لي وش الرقم.</p>
+<div class="grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:8px">
+<button data-msg="1">١</button><button data-msg="2">٢</button><button data-msg="3">٣</button>
+<button data-msg="4">٤</button><button data-msg="5">٥</button><button data-msg="6">٦</button>
+</div>
+<button id="hr30">نبض لمدة ٣٠ ثانية (الساعة على يدك)</button>
+</div>
+
+<div class="card">
 <h2>السجل</h2>
 <div id="log"></div>
 <div class="grid" style="margin-top:8px"><button id="copy">٢ · انسخ التقرير</button><button id="clear">امسح السجل</button></div>
@@ -173,6 +183,11 @@ $('go').onclick=runAll;
 document.querySelectorAll('[data-cmd]').forEach(b=>b.onclick=async()=>{try{await ensure();await send(b.dataset.cmd.split(' ').map(x=>parseInt(x,16)))}catch(e){log('خطأ: '+e.message,'er')}});
 $('send').onclick=async()=>{const s=$('raw').value.trim();if(!s)return;const bytes=s.split(/[\s,-]+/).filter(Boolean).map(x=>parseInt(x,16));if(bytes.some(isNaN)){log('اكتب أرقام hex بس','er');return}try{await ensure();await send(bytes)}catch(e){log('خطأ: '+e.message,'er')}};
 $('copy').onclick=async()=>{const rows=[...document.querySelectorAll('.stat')].map(s=>s.children[0].textContent+': '+s.children[1].textContent).join('\n');const txt='تقرير ساعة Z30\n'+rows+'\n---\n'+[...logEl.children].map(d=>d.textContent).join('\n');try{await navigator.clipboard.writeText(txt);$('copy').textContent='تم النسخ ✓'}catch(e){const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();$('copy').textContent='تم النسخ ✓'}setTimeout(()=>$('copy').textContent='٢ · انسخ التقرير',2500)};
+
+const A=t=>Array.from(new TextEncoder().encode(t));
+const MSGS={1:()=>[[0x07,0x01,...A('NOVA')]],2:()=>[[0x07,0x00,...A('NOVA')]],3:()=>[[0x07,0x01,4,...A('NOVA')]],4:()=>[[0x72,0x01,...A('NOVA')]],5:()=>[[0x73,0x01,...A('NOVA')]],6:()=>[[0x07,0x01,0x01,0x00,...A('NOVA')]]};
+document.querySelectorAll('[data-msg]').forEach(b=>b.onclick=async()=>{try{await ensure();log('تجربة رسالة رقم '+b.dataset.msg,'nt');for(const pk of MSGS[b.dataset.msg]())await send(pk,1500);}catch(e){log('خطأ: '+e.message,'er')}});
+$('hr30').onclick=async()=>{try{const server=await ensure();await send([0x69,0x01,0x01],3000);for(let i=0;i<6;i++){await sleep(5000);if(!rxc)break;await send([0x69,0x01,0x03],2000);}await send([0x6A,0x01,0x00]);}catch(e){log('خطأ: '+e.message,'er')}};
 $('clear').onclick=()=>{logEl.innerHTML=''};
 </script>
 </body>
